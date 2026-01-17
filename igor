@@ -140,7 +140,11 @@ SYSTEM KNOWLEDGE (learned from past sessions):
 $knowledge"
     fi
 
-    opencode run --prompt "$system_prompt" "$user_task"
+    local full_message="$system_prompt
+
+USER REQUEST: $user_task"
+
+    opencode run "$full_message"
 }
 
 main() {
