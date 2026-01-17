@@ -17,10 +17,28 @@ show_help() {
     cat << 'EOF'
 Igor v1.0 - Autonomous System Agent
 
-Usage: igor [FLAGS] <task or question>
-   or: echo "your question" | igor
+Usage: igor <your question here>
 
 Igor understands natural language requests and autonomously diagnoses and fixes system issues.
+
+SHELL QUOTING (Important!):
+  Bash/Zsh interpret apostrophes (') and quotes (") as special characters.
+  When your question contains these, you MUST quote the entire question:
+  
+  ✓ WORKS:   igor "i can't reach my server"
+  ✓ WORKS:   igor 'server wont start whats wrong'  
+  ✓ WORKS:   echo "can't connect" | igor
+  
+  ✗ HANGS:   igor i can't reach my server
+             (bash waits for closing quote - not Igor's fault!)
+
+  TIP: When in doubt, use quotes. They always work.
+
+EXAMPLES:
+  igor check disk space
+  igor why is my docker service crashing
+  igor "i can't reach rancher.omaemirates.com"
+  echo "server won't start what's wrong" | igor
 
 FLAGS:
   --diagnose [type]   Run diagnostics without fixing
@@ -30,15 +48,6 @@ FLAGS:
   --clear-history     Clear history of fixed issues
   --help              Show this help
   --version           Show version
-
-EXAMPLES:
-  igor fix my permissions issues with .ssh
-  igor why is my docker service crashing
-  igor "check today's weather in sharjah"
-  echo "i can't reach my server" | igor
-
-TIP: Use quotes if your question has apostrophes or special chars:
-  igor "i can't reach my server what's wrong"
 
 EOF
 }
@@ -147,8 +156,8 @@ USER REQUEST: $user_task"
 
     local model="${IGOR_MODEL:-opencode/big-pickle}"
     
-    # Use printf to avoid bash quote/apostrophe issues
-    printf '%s' "$full_message" | opencode run --model "$model"
+    # Use -- to signal end of options, allowing any content in the message
+    opencode run --model "$model" -- "$full_message"
 }
 
 main() {
