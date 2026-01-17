@@ -71,8 +71,15 @@ $ igor ssh isn't working
 
 ### Quick Install
 
+**Recommended (git clone):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/salowais/igor/master/install.sh | bash
+git clone https://github.com/Salowais/igor.git && cd igor && bash install.sh
+source ~/.bashrc
+```
+
+**Via curl (if git unavailable):**
+```bash
+curl -fsSL https://github.com/Salowais/igor/archive/refs/heads/master.tar.gz | tar xz && cd igor-master && bash install.sh
 source ~/.bashrc
 ```
 

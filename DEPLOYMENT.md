@@ -4,20 +4,19 @@
 
 ### For Personal Use
 
+**Recommended (git clone - most reliable):**
 ```bash
-# One-liner installation
-curl -fsSL https://raw.githubusercontent.com/salowais/igor/master/install.sh | bash
-
-# Then reload shell
+git clone https://github.com/Salowais/igor.git
+cd igor
+bash install.sh
 source ~/.bashrc
 ```
 
-### Manual Installation
-
+**Via tar (if git unavailable):**
 ```bash
-git clone https://github.com/salowais/igor.git
-cd igor
-./install.sh
+curl -fsSL https://github.com/Salowais/igor/archive/refs/heads/master.tar.gz | tar xz
+cd igor-master
+bash install.sh
 source ~/.bashrc
 ```
 

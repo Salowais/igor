@@ -5,7 +5,7 @@ Igor is like having a senior sysadmin in your terminal. Tell it what's wrong, an
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/salowais/igor/master/install.sh | bash
+git clone https://github.com/Salowais/igor.git && cd igor && bash install.sh
 source ~/.bashrc
 ```
 
