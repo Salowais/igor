@@ -1,229 +1,342 @@
-# Igor - Natural Language CLI Assistant
+# Igor v1.0 - Autonomous System Agent
 
-A powerful shell wrapper that lets you use OpenCode directly from the command line with natural language. Say "igor do this" and watch it think, reason, and use tools to accomplish your task—all while asking for confirmation before anything destructive.
+An intelligent system diagnostics and repair agent that understands natural language and autonomously fixes Linux system issues. Think of it as having a senior sysadmin in your terminal who proactively identifies and resolves problems.
 
 ## Features
 
-- **Natural language commands** - No quotes needed, just type naturally
-- **Session continuity** - Igor remembers your project context across sessions
-- **Persistent memory** - Auto-extracted learnings about your project
-- **Streaming output** - Watch Igor think in real-time
-- **Smart confirmations** - Only asks before destructive operations
-- **Simple to install** - One command setup
+- **Natural Language Understanding** - Describe your problem in plain English, Igor figures out what to fix
+- **Autonomous Diagnostics** - Runs detailed system checks without you having to know what commands to run
+- **Smart Fixes** - Autonomously executes safe operations (restart services, fix permissions, update packages)
+- **Safety First** - Always asks before destructive operations
+- **Learning System** - Remembers issues it's fixed and patterns it's learned
+- **Streaming Output** - See Igor thinking in real-time as it analyzes your system
+
+## What Igor Can Do
+
+### Service Management
+```bash
+$ igor my nginx server won't start
+# Igor checks nginx status, reads logs, suggests and applies fixes
+
+$ igor docker service keeps crashing
+# Igor analyzes Docker issues, checks logs, recommends solutions
+```
+
+### Permission Fixes
+```bash
+$ igor fix my .ssh permissions
+# Igor automatically fixes SSH directory and file permissions
+
+$ igor why can't I access my home directory
+# Igor diagnoses and fixes permission issues
+```
+
+### System Health
+```bash
+$ igor diagnose my system
+# Full system health check with disk, memory, CPU, services
+
+$ igor I'm running out of disk space
+# Igor analyzes usage, suggests cleanup, helps free space
+```
+
+### Performance Issues
+```bash
+$ igor my system is slow
+# Igor profiles CPU, memory, disk I/O and suggests optimizations
+
+$ igor which process is using all my memory
+# Igor identifies resource hogs and suggests fixes
+```
+
+### Network Problems
+```bash
+$ igor I can't reach the internet
+# Igor tests connectivity, checks DNS, fixes network issues
+
+$ igor diagnose my network
+# Comprehensive network diagnostics
+```
+
+### Application Debugging
+```bash
+$ igor my postgresql won't connect
+# Igor checks service status, logs, connection issues
+
+$ igor ssh isn't working
+# Igor diagnoses SSH configuration and permission issues
+```
 
 ## Installation
 
-### Option 1: Quick Install (Recommended)
+### Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yourusername/igor/main/install.sh | bash
+source ~/.bashrc
 ```
 
-Then reload your shell:
-```bash
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-### Option 2: Manual Install
+### Manual Install
 
 ```bash
 git clone https://github.com/yourusername/igor.git
 cd igor
 ./install.sh
-source ~/.bashrc  # or source ~/.zshrc
+source ~/.bashrc
 ```
 
 ## Usage
 
-### Basic Commands
+### Basic Interaction
 
 ```bash
-# Simple natural language - no quotes needed
-igor find all TODO comments in this project
+# Igor runs diagnostics and suggests fixes
+$ igor my service is failing
 
-igor refactor the authentication module to use async/await
+# Igor shows what's wrong, asks for confirmation, then fixes it
+$ igor fix my permissions problems
 
-igor explain the database schema
+# Get diagnostics without fixes
+$ igor --diagnose disk
 
-igor add a login page with email and password
+# Igor continues from previous context
+$ igor now check if that fixed the issue
 ```
 
-### Memory Management
+### Command Reference
 
 ```bash
-# View current project memory
-igor --memory
-
-# View global memory (cross-project preferences)
-igor --memory global
-
-# Edit project memory
-igor --memory edit
-
-# Compact memory (remove duplicates, merge related items)
-igor --memory compact
+igor <description>              Main agent - analyze and fix system issues
+igor --diagnose [type]          Run diagnostics only (no fixes)
+                                Types: services, disk, permissions, network,
+                                       processes, logs, docker, health
+igor --memory                   Show learned system knowledge
+igor --memory edit              Edit system knowledge manually
+igor --clear-history            Clear history of fixed issues
+igor --dry-run <task>           Show what would be done without executing
+igor --help                     Show help
+igor --version                  Show version
 ```
 
-### Session Management
+## How Igor Works
 
-```bash
-# Start a fresh session (don't continue previous)
-igor --new explain this codebase to me
+### The Diagnostic Process
 
-# Clear current session
-igor --clear
-```
+1. **Listen** - Understand your problem from natural language description
+2. **Analyze** - Run appropriate system diagnostics
+3. **Investigate** - Read logs, check configuration, understand root cause
+4. **Explain** - Tell you clearly what's wrong and why
+5. **Suggest** - Recommend specific fixes
+6. **Confirm** - Ask for approval (when appropriate)
+7. **Execute** - Apply the fix
+8. **Verify** - Check that the fix worked
+9. **Learn** - Remember the issue for future reference
 
-### Other Commands
+### Confirmation Strategy
 
-```bash
-# Show help
-igor --help
+**Auto-Approved (no confirmation needed):**
+- Restarting failed services
+- Fixing obvious permission issues
+- Viewing logs and diagnostics
+- Updating package lists
+- Enabling disabled services
 
-# Show version
-igor --version
-
-# Show config file location and contents
-igor --config
-```
-
-## How It Works
-
-### Session Continuity
-
-Igor automatically maps each project (git repo or directory) to an OpenCode session. This means:
-
-- You can switch between projects and Igor remembers each one's context
-- Sessions timeout after 24 hours by default (configurable)
-- You can force a fresh session with `--new`
-
-**Project Detection:**
-- Uses git repository root if available
-- Falls back to current working directory
-
-### Memory System
-
-Igor has two levels of memory:
-
-1. **Global Memory** (`~/.igor/memory/global.md`)
-   - Cross-project preferences
-   - General learnings about your workflow
-   - Shared across all projects
-
-2. **Project Memory** (`~/.igor/memory/projects/<project>.md`)
-   - Project-specific context
-   - Architecture decisions made
-   - Auto-extracted learnings from sessions
-
-**Auto-Update:**
-- After each session, Igor extracts 2-3 key learnings
-- Runs in background (non-blocking)
-- Includes timestamp for easy filtering
-
-**Manual Compaction:**
-- Run `igor --memory compact` to clean up old entries
-- Removes duplicates and merges related items
-- Keeps memory fresh and relevant
-
-### Confirmation Behavior
-
-Igor asks for confirmation before:
-- Writing or editing files
-- Deleting files
-- Git operations (commit, push, reset, etc.)
-- Running shell commands that modify state
-- Batch operations affecting 5+ files
-
-For read-only operations (viewing, searching, listing), Igor proceeds without asking.
-
-## Configuration
-
-Igor stores its config at `~/.igor/config.yaml`:
-
-```yaml
-# Default model (optional, uses OpenCode default if not set)
-# model: anthropic/claude-sonnet-4
-
-# Agent to use
-agent: build
-
-# What requires confirmation
-confirm:
-  file_write: true
-  file_delete: true
-  git_operations: true
-  shell_commands: true
-  batch_operations: true
-
-# Memory settings
-memory:
-  enabled: true
-  auto_update: true
-  max_entries: 50
-
-# Session settings
-session:
-  timeout_hours: 24
-```
-
-## Directory Structure
-
-```
-~/.igor/
-├── config.yaml              # Main configuration
-├── bin/
-│   └── igor                 # Main executable
-├── lib/
-│   ├── config.sh            # Configuration parsing
-│   ├── session.sh           # Session management
-│   ├── memory.sh            # Memory operations
-│   └── prompt.sh            # System prompt builder
-├── sessions/
-│   └── <project-hash>       # Maps projects to session IDs
-├── memory/
-│   ├── global.md            # Global memory
-│   └── projects/
-│       ├── my-app.md
-│       └── another-project.md
-└── cache/                   # Temporary files
-```
+**Always Asks First:**
+- Deleting files or directories
+- Modifying critical system configs
+- Installing/removing packages
+- Any operation affecting multiple systems
 
 ## Examples
 
-### Example 1: Adding a Feature
+### Example 1: Diagnose Service Failure
 
 ```bash
-$ cd ~/projects/my-app
-$ igor add a contact form to the home page with email validation
-```
+$ igor my nginx service won't start
 
 Igor will:
-1. Ask what framework you're using (checks memory)
-2. Ask for confirmation before writing files
-3. Create/update components
-4. Extract learnings about your setup
+1. Check if nginx is installed
+2. Check service status with systemctl
+3. Read recent logs from journalctl
+4. Identify the problem (e.g., port in use, config error)
+5. Suggest a fix
+6. Ask for approval and apply it
+7. Verify the service is running
+```
 
-Next time you say something about this project, Igor remembers what framework and patterns you use.
-
-### Example 2: Exploring Code
+### Example 2: Fix Permission Issues
 
 ```bash
-$ igor show me all the API endpoints and what they do
-```
+$ igor I can't ssh into my server
 
 Igor will:
-1. Search for API routes
-2. Read relevant files
-3. Summarize the endpoints
-4. No confirmation needed (read-only)
-
-### Example 3: Refactoring
-
-```bash
-$ igor --new refactor this project to use TypeScript strict mode
+1. Check ~/.ssh directory permissions
+2. Check authorized_keys permissions
+3. Check SSH service status
+4. Fix permission issues automatically (knows safe values)
+5. Suggest SSH config changes if needed
+6. Test SSH connection
 ```
 
-The `--new` flag forces a fresh session, so Igor gets a clean slate for analyzing the current state.
+### Example 3: Diagnose Performance
+
+```bash
+$ igor my system is slow
+
+Igor will:
+1. Check CPU load
+2. Check memory usage
+3. Check disk I/O
+4. Check for resource-hogging processes
+5. Show top consumers
+6. Suggest which processes to optimize or stop
+```
+
+## Configuration
+
+Igor stores configuration at `~/.igor/config.yaml`:
+
+```yaml
+agent: build              # Agent to use
+confirm:
+  file_write: true       # Ask before writing files
+  file_delete: true      # Ask before deleting
+  git_operations: true   # Ask before git operations
+  shell_commands: true   # Ask before shell commands
+  batch_operations: true # Ask before batch ops
+memory:
+  enabled: true          # Enable learning
+  auto_update: true      # Auto-extract learnings
+```
+
+## Data Storage
+
+Igor stores information at `~/.igor/`:
+
+```
+~/.igor/
+├── config.yaml                 Configuration
+├── memory/
+│   ├── system/
+│   │   └── knowledge.md       What Igor learned about your system
+│   └── issues/
+│       └── fixed.log          Log of all fixed issues
+└── sessions/                  Conversation history
+```
+
+## Learning System
+
+Igor maintains a knowledge base at `~/.igor/memory/system/knowledge.md` that includes:
+
+- Installed services and their locations
+- Configuration file paths
+- Common issues and how they were resolved
+- System quirks and workarounds
+- Performance baselines
+
+You can view and edit this:
+
+```bash
+$ igor --memory              # View knowledge
+$ igor --memory edit         # Edit manually
+$ igor --clear-history       # Clear fixed issues log
+```
+
+## Safety & Security
+
+- **No automatic changes without context** - Igor explains what it's doing
+- **Clear confirmation requests** - Never changes system without approval
+- **Audit trail** - All fixes logged in `~/.igor/memory/issues/fixed.log`
+- **Safe defaults** - Uses standard, well-tested approaches
+- **No credentials stored** - All auth via OpenCode's existing setup
+
+## Troubleshooting
+
+**"Igor command not found"**
+```bash
+source ~/.bashrc  # Reload shell
+```
+
+**"Permission denied"**
+```bash
+# Some operations require sudo
+sudo igor fix my service issues
+```
+
+**"OpenCode not working"**
+```bash
+# Make sure OpenCode is installed and configured
+opencode --help
+```
+
+**See what Igor learned**
+```bash
+igor --memory
+```
+
+## Requirements
+
+- Bash 4.0+
+- OpenCode CLI installed and configured
+- Linux system (tested on Ubuntu, Debian, CentOS, Arch)
+- Sudo access for system-level fixes
+
+## Performance
+
+- **Startup** - ~50ms (shell sourcing)
+- **Diagnostics** - ~1-5s depending on system size
+- **Execution** - Varies by operation (typically instant to a few seconds)
+- **Learning** - Background, non-blocking
+
+## Architecture
+
+See `ARCHITECTURE.md` for technical design, data structures, and extensibility notes.
+
+## Contributing
+
+Igor is designed to be simple and extensible:
+
+- Add new diagnostic functions to `lib/diagnostics.sh`
+- Add new fix procedures to `lib/fixer.sh`
+- Improve the system prompt in `igor` for better understanding
+- Share learned configurations
+
+## Tips & Tricks
+
+**Understand what Igor will do**
+```bash
+igor --diagnose disk        # See issues without fixes
+```
+
+**Check what Igor learned**
+```bash
+igor --memory
+```
+
+**Run repeatedly**
+```bash
+igor my issue
+igor is it fixed
+igor what else needs fixing
+# Igor maintains context across commands
+```
+
+**Force diagnosis and analysis**
+```bash
+igor --new analyze my system from scratch
+```
+
+**Combine with other tools**
+```bash
+igor my service won't start | tee issue-report.txt
+```
+
+## Limitations
+
+- Requires system access (not remote by default, but can be extended)
+- Works on Linux systems (macOS and Windows support possible)
+- Some operations require sudo
+- Depends on common Linux utilities being available
 
 ## Uninstall
 
@@ -231,80 +344,10 @@ The `--new` flag forces a fresh session, so Igor gets a clean slate for analyzin
 ~/code/igor/uninstall.sh
 ```
 
-This removes Igor and cleans up your shell configuration.
-
-## Architecture
-
-Igor is built as a thin shell wrapper around OpenCode with these responsibilities:
-
-1. **Session Management** - Maps projects to OpenCode sessions
-2. **Memory** - Persists learnings and context between sessions
-3. **Prompting** - Builds enhanced system prompts with context
-4. **Configuration** - Manages user preferences and settings
-
-The actual work is delegated to OpenCode, which has access to all its tools (LSP, bash, file operations, etc.).
-
-## Tips & Tricks
-
-**Combine with other shell commands:**
-```bash
-$ igor <command> > output.txt
-$ igor <command> | grep something
-```
-
-**Quick iteration:**
-```bash
-$ igor implement feature X
-$ igor now add tests for this
-$ igor fix the failing test
-```
-
-Each command continues the session, so context carries over.
-
-**Manual memory editing:**
-```bash
-$ igor --memory edit
-# Opens $EDITOR with project memory
-# Edit directly, save, and it's stored
-```
-
-**See what Igor is remembering:**
-```bash
-$ igor --memory        # Current project
-$ igor --memory global # Global prefs
-$ igor --memory all    # Everything
-```
-
-## Troubleshooting
-
-**"Igor not found"**
-- Make sure you ran `source ~/.bashrc` or restarted your terminal
-- Check that `~/.igor/bin` is in your PATH: `echo $PATH`
-
-**"Config file not found"**
-- Run `igor --init` to create a default config
-
-**Memory not updating**
-- Check if memory is enabled: `cat ~/.igor/config.yaml | grep enabled`
-- Memory extraction runs in background - give it a moment
-
-**Session not continuing**
-- Sessions timeout after 24 hours (configurable)
-- Use `igor --new` to force a fresh session
-- Check session status: look at `~/.igor/sessions/`
-
-## Contributing
-
-Igor is designed to be simple and self-contained. Feel free to:
-- Fork and customize for your workflow
-- Improve the shell scripts
-- Add new memory features
-- Optimize the prompting
-
 ## License
 
 MIT
 
 ## Inspiration
 
-Named after the ancient myth of Sisyphus - like pushing a boulder up a hill, we write code every day. Igor helps make that daily push a bit easier by being your intelligent assistant in the shell.
+Named after Sisyphus - like daily system administration work, Igor helps push problems away so you can focus on what matters. No TUI, no bloat, just intelligent diagnostics and fixes.

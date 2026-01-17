@@ -3,9 +3,9 @@
 
 set -euo pipefail
 
-# Initialize memory directories
 init_memory() {
-    mkdir -p "${IGOR_HOME}/memory/projects"
+    mkdir -p "${IGOR_HOME}/memory/system"
+    mkdir -p "${IGOR_HOME}/memory/issues"
     mkdir -p "${IGOR_HOME}/cache"
 }
 

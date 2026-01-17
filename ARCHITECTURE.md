@@ -1,208 +1,336 @@
-# Igor Architecture
+# Igor v1.0 Architecture - Autonomous System Agent
 
 ## Overview
 
-Igor is a lightweight shell wrapper around OpenCode that provides:
-1. **Session continuity** - Maps projects to persistent OpenCode sessions
-2. **Persistent memory** - Auto-extracted learnings across sessions
-3. **Contextual prompting** - System prompts enhanced with project context
-4. **Smart confirmations** - Only asks before destructive operations
+Igor is an intelligent system diagnostics and repair agent that:
+1. **Understands natural language** about system problems
+2. **Runs diagnostic checks** autonomously
+3. **Identifies root causes** and suggests fixes
+4. **Executes safe operations** without asking
+5. **Asks for confirmation** on potentially destructive changes
+6. **Learns from experience** - remembers issues it's fixed
+
+## Core Design Philosophy
+
+Igor follows this principle: **Be autonomous but safe**
+- Auto-approve read-only operations (diagnostics, viewing logs, understanding)
+- Auto-approve common safe fixes (restart services, fix permissions)
+- Always ask before anything destructive (delete, modify critical config, install packages)
 
 ## Components
 
-### Core Layer: `lib/` modules
+### Core Modules (`lib/`)
 
 **config.sh** (~80 lines)
-- YAML parsing for ~/.igor/config.yaml
-- Query functions for configuration values
-- Config initialization with sensible defaults
+- YAML configuration parsing
+- Query functions with sensible defaults
+- Auto-initialization of config
 
 **session.sh** (~110 lines)
-- Project detection (git repo or cwd)
-- Project-to-session mapping via MD5 hash
-- Session validity checking with timeout
-- Session creation and persistence
+- Project/system detection (git root or cwd)
+- MD5-based session mapping
+- Session persistence and timeout checking
+- Works at system level (hostname-based by default)
 
 **memory.sh** (~190 lines)
-- Global memory (cross-project preferences)
-- Project memory (per-project context)
-- Auto-extraction of learnings from session output
-- Memory compaction (dedup, archival)
-- Memory context injection for prompts
+- System knowledge base storage
+- Issue history logging
+- Learn operations (append findings)
+- Automatic and manual memory management
+
+**diagnostics.sh** (NEW - ~200 lines)
+- System health checking (CPU, memory, disk, I/O)
+- Service status and logging
+- Network diagnostics
+- Process analysis
+- Docker/container checks
+- Permission auditing
+- Package manager inspection
+
+**fixer.sh** (NEW - ~150 lines)
+- Permission fixing (chmod)
+- Service management (restart, start, stop, enable)
+- Disk space optimization suggestions
+- Package update checking
+- Docker troubleshooting
+- Network issue fixes
+- Memory pressure analysis
 
 **prompt.sh** (~60 lines)
-- System prompt builder with memory injection
-- Behavior guidelines (confirmations, tool usage)
-- Current session metadata
+- System prompt builder
+- Memory context injection
+- Behavior guidelines for OpenCode
 
-### Main Script: `igor`
+### Main Script
 
-**igor** (~190 lines)
+**igor** (~130 lines)
 - Command-line argument parsing
-- Subcommand routing (--memory, --config, --clear, etc.)
-- Session orchestration
-- OpenCode invocation with context
-- Background memory extraction
-- Output capture and session ID extraction
-
-### Installation
-
-**install.sh** (~45 lines)
-- Creates ~/.igor directory structure
-- Copies files to proper locations
-- Adds Igor to PATH in shell configs
-- Creates default config
-
-**uninstall.sh** (~25 lines)
-- Removes Igor and all data
-- Cleans up shell config files
+- Diagnostic mode (--diagnose with types)
+- Memory management (view, edit, clear history)
+- Agent orchestration
+- OpenCode integration
 
 ## Data Flow
 
 ```
-User Command
+User Request
     ↓
-igor (parse args)
+Igor Script (parse command)
     ↓
-get_or_create_session() ──→ ~/.igor/sessions/<hash>
+┌─────────────────────────────────┐
+│   DIAGNOSTIC MODE?              │
+│   (--diagnose)                  │
+│   Yes → Run diagnostics.sh      │
+│   No  → Continue to agent       │
+└─────────────────────────────────┘
     ↓
-build_system_prompt()
-    └──→ read_project_memory() ──→ ~/.igor/memory/projects/<name>.md
-    └──→ read_global_memory() ──→ ~/.igor/memory/global.md
+Load System Knowledge
+(~/.igor/memory/system/knowledge.md)
     ↓
-opencode run --prompt <system> <user_prompt>
+Build System Prompt with Guidelines
+(behavior rules, tools available, knowledge)
     ↓
-(streaming output to terminal)
+opencode run --prompt <prompt> <task>
     ↓
-capture output
-    └──→ save_session_id() ──→ ~/.igor/sessions/<hash>
-    └──→ extract_learnings() [background] ──→ append_project_memory()
+OpenCode analyzes & executes (with agent tools)
+    ↓
+Output captured & logged
+    ↓
+Update system knowledge (background)
+    ↓
+Log any fixes executed
 ```
 
 ## Storage Structure
 
 ```
 ~/.igor/
-├── config.yaml
+├── config.yaml                 User configuration
 ├── bin/
-│   └── igor (symlink or copy)
+│   └── igor                    Main executable
 ├── lib/
 │   ├── config.sh
 │   ├── session.sh
 │   ├── memory.sh
+│   ├── diagnostics.sh
+│   ├── fixer.sh
 │   └── prompt.sh
-├── sessions/
-│   └── <project-md5-hash> (contains session_id)
 ├── memory/
-│   ├── global.md
-│   └── projects/
-│       ├── project-a.md
-│       └── project-b.md
-└── cache/
-    └── (temporary files)
+│   ├── system/
+│   │   └── knowledge.md        System knowledge base
+│   └── issues/
+│       └── fixed.log           Log of fixed issues
+└── sessions/
+    └── <hostname-hash>         Session ID storage
 ```
 
-## Memory Format
+## System Knowledge Base
 
-Memory files are Markdown with sections:
-- **Context** - Project setup, framework, key facts
-- **Decisions** - Architecture choices with dates
-- **Learned** - Auto-extracted facts from sessions
-- **User Preferences** - Global preferences copied to project scope
+Format: `~/.igor/memory/system/knowledge.md` (Markdown)
 
-Timestamps help with:
-- Auto-compaction (remove entries older than 30 days)
-- Tracking evolution of decisions
-- Filtering recent learnings
+```markdown
+# System Knowledge Base
+
+## Installed Services
+- nginx at /etc/nginx/
+- postgresql on port 5432
+- docker running
+
+## Configuration Locations
+- SSH: /etc/ssh/sshd_config
+- Nginx: /etc/nginx/nginx.conf
+
+## Common Issues (and fixes)
+- Port already in use: find with lsof, restart service
+- Permission denied on .ssh: chmod 600 /root/.ssh/id_rsa
+- Disk full: clean apt cache, old logs
+
+## Fixed Issues
+- 2025-01-17: Nginx wouldn't start due to syntax error in config
+- 2025-01-16: Docker socket permission issue fixed with group membership
+```
+
+## Autonomous Execution Strategy
+
+### Three Levels of Operations
+
+**Level 1: Auto-Execute (no confirmation)**
+```
+- View operations: cat, ls, tail, head
+- Status checks: systemctl status, docker ps
+- Diagnostics: logs, metrics, service info
+- List operations: ps, netstat, df
+- Safe reads: /var/log/*, /etc/* (non-critical)
+```
+
+**Level 2: Confirm (ask user first)**
+```
+- File operations: write, edit, create
+- Dangerous commands: rm, mv (files)
+- Service changes: restart, enable (minor)
+- Config changes: /etc/* modifications
+- Package ops: apt install, yum install (major)
+```
+
+**Level 3: Strongly Confirm (critical)**
+```
+- Destructive: rm -rf, format, wipe
+- Critical config: /root/*, /boot/*, /etc/passwd
+- System changes: kernel, init system, users
+- Batch operations: changes affecting multiple systems
+```
+
+OpenCode is instructed via system prompt to respect these levels.
+
+## Confirmation in Practice
+
+User says: "My nginx won't start"
+
+Igor runs: 
+1. `systemctl status nginx` → shows error (auto, no confirm)
+2. `journalctl -u nginx -n 50` → shows config syntax error (auto)
+3. "Configuration has syntax error at line 42"
+4. Suggests: "Fix the config?" 
+5. User: "yes"
+6. OpenCode uses system tools to fix it
+7. "Testing fix with: nginx -t" (auto)
+8. "✓ Nginx now running"
+
+User says: "Delete all old docker images"
+
+Igor stops and asks:
+"I found 5 unused Docker images totaling 2GB. Deleting images cannot be undone. Confirm? (yes/no)"
+User confirms → proceeds
+
+## Learning Mechanism
+
+### Automatic Learning
+After each successful fix, Igor extracts and stores:
+- Issue description
+- Root cause identified
+- Fix applied
+- Verification step
+- Timestamp
+
+### Manual Learning
+Users can:
+```bash
+igor --memory edit      # Add custom knowledge
+```
+
+Edit knowledge.md directly to record:
+- New service locations
+- Custom configurations
+- Organization-specific workarounds
+- Performance baselines
 
 ## Configuration
 
-`.igor/config.yaml` controls:
+Default `~/.igor/config.yaml`:
 
-**Model/Agent Selection**
-- Default model (e.g., anthropic/claude-sonnet-4)
-- Agent to use (build, explore, etc.)
+```yaml
+agent: build                    # OpenCode agent to use
 
-**Confirmation Behavior**
-- Which operations require approval
-- Granular per-operation control
+confirm:
+  file_write: true             # Prompt before file operations
+  file_delete: true            # Prompt before deletions
+  git_operations: true         # Prompt before git ops
+  shell_commands: true         # Prompt before shell commands
+  batch_operations: true       # Prompt for multi-system changes
 
-**Memory Settings**
-- Enable/disable auto-extraction
-- Max entries per project (for compaction)
+memory:
+  enabled: true                # Enable learning
+  auto_update: true            # Auto-extract learnings
+```
 
-**Session Timeouts**
-- Hours before session expires
-- Can be customized per-project if needed
+## Performance Characteristics
 
-## Key Design Decisions
+| Operation | Time |
+|-----------|------|
+| Startup | ~50ms (shell sourcing) |
+| Diagnostics | 1-5s (system dependent) |
+| Service restart | <2s |
+| Permission fix | <1s |
+| Log analysis | 2-10s |
+| Total fix cycle | 5-30s (typical) |
 
-### 1. Hash-based Project Mapping
-- Projects identified by MD5 of absolute path
-- Survives renames of parent directories
-- Sessions stored flat (no deep nesting)
+## Security Considerations
 
-### 2. Background Memory Extraction
-- Forked to background with `&`
-- Non-blocking - user sees results immediately
-- Simple extraction prompt to OpenCode
-- Incremental appends (no overwrites)
-
-### 3. System Prompt Injection via --prompt Flag
-- OpenCode's `--prompt` flag carries system instructions
-- Injected into every run, includes memory context
-- Stateless - no server coordination needed
-
-### 4. Confirmation via System Prompt
-- Behavior guidelines in system prompt
-- OpenCode naturally asks before destructive ops
-- No special parsing of output needed
-
-### 5. Minimal Dependencies
-- Pure bash (no Python, Ruby, etc.)
-- Only depends on: bash, git, md5sum, opencode
-- No external config libraries
+1. **No credential storage** - All auth via OpenCode
+2. **Audit trail** - All fixes logged with timestamps
+3. **Conservative defaults** - Asks before anything risky
+4. **Clear communication** - Users see exactly what's happening
+5. **Safe ownership** - Igor runs as current user (or sudo when needed)
+6. **No privilege escalation** - User controls when sudo is used
 
 ## Extensibility
 
-Future enhancements:
+### Adding Diagnostics
 
-1. **Project-specific configs** - Allow `./igor.yaml` in projects
-2. **Memory sources** - Git blame, file history, tests as context
-3. **Custom extractors** - User-defined memory extraction rules
-4. **Agent switching** - Automatically select agents based on task
-5. **Session export** - Share sessions across team
-6. **Webhooks** - Trigger Igor on git events
+```bash
+# In lib/diagnostics.sh
+diagnose_myservice() {
+    echo "=== My Service Status ==="
+    systemctl status myservice --no-pager
+    # ... more checks
+}
+```
 
-## Performance
+### Adding Fixes
 
-- **Startup**: ~50ms (shell sourcing + arg parsing)
-- **Memory read**: ~10ms (cat files)
-- **Session lookup**: ~5ms (md5 + file read)
-- **Memory extraction**: Async in background
+```bash
+# In lib/fixer.sh
+fix_myservice() {
+    local issue="$1"
+    echo "Fixing myservice: $issue"
+    # ... fix logic
+}
+```
 
-Total user-facing latency: < 100ms before OpenCode starts.
+### Adding to Learning
 
-## Security
+```bash
+# In any script
+learn_system_info "PostgreSQL installed at /usr/lib/postgresql"
+```
 
-- No secrets stored (auth handled by OpenCode)
-- Memory files readable by user only (chmod 644)
-- Config file same (users may add API keys)
-- Temporary files cleaned up after each run
-- No network calls from Igor itself
+## Future Enhancements
 
-## Testing
+1. **Multi-system support** - SSH into remote servers
+2. **Health monitoring** - Continuous checking, alerts
+3. **Predictive fixes** - "Your /var is 80% full, will be full in 3 days"
+4. **Package management** - Smart dependency resolution
+5. **Config backup** - Auto-backup before changes
+6. **Team knowledge base** - Share system knowledge across team
+7. **Metrics export** - Prometheus-compatible metrics
+8. **Agent selection** - Auto-choose agent based on task
 
-Covered behaviors:
-- Session creation and continuation
-- Memory read/write/append
+## Testing Approach
+
+Core functionality tested:
+- Diagnostic functions execute without errors
+- Session management (creation, persistence)
+- Memory read/write operations
 - Config parsing with fallbacks
-- Project detection (git vs cwd)
-- CLI argument parsing
+- Command-line argument routing
 - Help and version output
 
-Not tested yet (future):
-- Full E2E with real OpenCode
-- Memory compaction logic
-- Session timeout expiry
-- Complex memory scenarios
+Real-world testing:
+- Run `igor --diagnose health` on live system
+- Check memory with `igor --memory`
+- Try actual fixes on test system
+- Verify logs in `~/.igor/memory/issues/fixed.log`
+
+## Comparison to Alternatives
+
+| Feature | Igor | Manual | Ansible | Puppet |
+|---------|------|--------|---------|--------|
+| Natural language | ✓ | ✗ | ✗ | ✗ |
+| Interactive | ✓ | ✓ | ✓ | ✗ |
+| One-liner | ✓ | ✗ | ✓ | ✗ |
+| Learning | ✓ | ✗ | ✗ | ✗ |
+| Local focus | ✓ | ✓ | ✗ | ✗ |
+| Zero config | ✓ | ✓ | ✗ | ✗ |
+| Instant feedback | ✓ | ✓ | ✗ | ✗ |
+
+Igor is designed for **interactive, single-system, ad-hoc administration with learning**.

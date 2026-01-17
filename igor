@@ -2,7 +2,7 @@
 set -euo pipefail
 
 IGOR_HOME="${IGOR_HOME:-${HOME}/.igor}"
-IGOR_VERSION="0.1.0"
+IGOR_VERSION="1.0.0"
 
 export IGOR_HOME IGOR_VERSION
 
@@ -10,162 +10,187 @@ source "${IGOR_HOME}/lib/config.sh" 2>/dev/null || true
 source "${IGOR_HOME}/lib/session.sh" 2>/dev/null || true
 source "${IGOR_HOME}/lib/memory.sh" 2>/dev/null || true
 source "${IGOR_HOME}/lib/prompt.sh" 2>/dev/null || true
+source "${IGOR_HOME}/lib/diagnostics.sh" 2>/dev/null || true
+source "${IGOR_HOME}/lib/fixer.sh" 2>/dev/null || true
 
 show_help() {
-    cat << EOF
-Igor - Natural Language CLI for OpenCode
+    cat << 'EOF'
+Igor v1.0 - Autonomous System Agent
 
-Usage: igor [FLAGS] <command...>
+Usage: igor [FLAGS] <task or question>
+
+Igor understands natural language requests and autonomously diagnoses and fixes system issues.
 
 FLAGS:
-  --new               Force new session (don't continue previous)
-  --memory            Show project memory
-  --memory global     Show global memory
-  --memory edit       Edit project memory
-  --memory compact    Compact memory (remove duplicates)
-  --clear             Clear current session
-  --config            Show config file location
+  --diagnose [type]   Run diagnostics without fixing
+  --dry-run           Show what would be fixed without executing
+  --memory            Show learned system knowledge
+  --memory edit       Edit system knowledge
+  --clear-history     Clear history of fixed issues
   --help              Show this help
   --version           Show version
 
 EXAMPLES:
-  igor find all TODO comments in this project
-  igor refactor the auth module to use async/await
-  igor --new explain this codebase to me
-  igor --memory
-  igor --clear
+  igor fix my permissions issues with .ssh
+  igor why is my docker service crashing
+  igor diagnose my disk space problems
+  igor my nginx server won't start
+  igor what services are failing
+  igor show me performance issues
+  igor audit my system
 
 EOF
 }
 
 show_version() {
-    echo "Igor v${IGOR_VERSION}"
+    echo "Igor v${IGOR_VERSION} - Autonomous System Agent"
+}
+
+diagnose_mode() {
+    local diagnose_type="${1:-general}"
+    shift || true
+    
+    echo "🔍 Diagnosing: $diagnose_type"
+    echo ""
+    
+    case "$diagnose_type" in
+        services)
+            diagnose_services
+            ;;
+        disk)
+            diagnose_disk
+            ;;
+        permissions)
+            diagnose_permissions "${1:-.}"
+            ;;
+        network)
+            diagnose_network
+            ;;
+        processes)
+            diagnose_processes "${1:-}"
+            ;;
+        logs)
+            diagnose_logs "${1:-}"
+            ;;
+        docker)
+            diagnose_docker
+            ;;
+        health)
+            diagnose_system_health
+            ;;
+        *)
+            diagnose_system_health
+            diagnose_logs
+            ;;
+    esac
+    
+    echo ""
+    echo "💡 Run 'igor <issue>' to get fix suggestions"
+}
+
+run_agent() {
+    local user_task="$1"
+    
+    init_memory
+    init_default_config
+    
+    echo "🤖 Igor - System Agent"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Task: $user_task"
+    echo ""
+    
+    local knowledge=$(get_system_knowledge 2>/dev/null || echo "")
+    
+    local system_prompt="You are Igor, an autonomous Linux system diagnostics and repair agent.
+
+CORE RESPONSIBILITIES:
+1. Understand problems from natural language descriptions
+2. Run appropriate system diagnostics
+3. Identify root causes
+4. Explain findings clearly
+5. Suggest fixes
+6. Ask for confirmation before major changes
+7. Execute approved fixes
+8. Verify results
+
+AUTO-APPROVE (no confirmation):
+- Viewing files and logs
+- Checking service status
+- Restarting failed services
+- Fixing permissions (e.g., chmod 600 ~/.ssh/id_rsa)
+- Package list updates
+
+ALWAYS CONFIRM:
+- Deleting files
+- Modifying /etc or /root
+- Package installs/removals
+- Destructive operations
+
+THINKING STYLE:
+- Be analytical and thorough
+- Explain your reasoning
+- Consider multiple potential causes
+- Suggest preventive measures
+- Learn from each issue"
+
+    if [[ -n "$knowledge" ]]; then
+        system_prompt+="
+
+SYSTEM KNOWLEDGE (learned from past sessions):
+$knowledge"
+    fi
+
+    opencode run --prompt "$system_prompt" "$user_task"
 }
 
 main() {
-    local force_new=false
-    local command=""
-    
     if [[ $# -eq 0 ]]; then
         show_help
         exit 0
     fi
     
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --help|-h)
-                show_help
-                exit 0
-                ;;
-            --version|-v)
-                show_version
-                exit 0
-                ;;
-            --new)
-                force_new=true
-                shift
-                ;;
-            --clear)
-                local project_root=$(get_project_root)
-                clear_session "$project_root"
-                echo "Session cleared for $(basename "$project_root")"
-                exit 0
-                ;;
-            --memory)
-                shift
-                local scope="${1:-project}"
-                if [[ "$scope" == "edit" ]]; then
-                    local project_root=$(get_project_root)
-                    local project_name=$(basename "$project_root")
-                    edit_memory "project" "$project_name"
-                elif [[ "$scope" == "compact" ]]; then
-                    local project_root=$(get_project_root)
-                    local project_name=$(basename "$project_root")
-                    echo "Compacting memory..."
-                    compact_memory "$project_name"
-                else
-                    show_memory "$scope"
-                fi
-                exit 0
-                ;;
-            --config)
-                echo "Config: ${IGOR_HOME}/config.yaml"
-                if [[ -f "${IGOR_HOME}/config.yaml" ]]; then
-                    cat "${IGOR_HOME}/config.yaml"
-                else
-                    echo "Config file not found. Run 'igor --init' to create default config."
-                fi
-                exit 0
-                ;;
-            --init)
-                init_default_config
-                echo "Config initialized at ${IGOR_HOME}/config.yaml"
-                exit 0
-                ;;
-            *)
-                command="$*"
-                break
-                ;;
-        esac
-    done
-    
-    if [[ -z "$command" ]]; then
-        show_help
-        exit 0
-    fi
-    
-    run_command "$command" "$force_new"
-}
-
-run_command() {
-    local user_prompt="$1"
-    local force_new="$2"
-    
-    local project_root=$(get_project_root)
-    local project_name=$(basename "$project_root")
-    
-    init_memory
-    init_default_config
-    
-    get_or_create_session "$project_root" "$force_new"
-    
-    local system_prompt=$(build_system_prompt "$project_root")
-    
-    local opencode_args=(
-        "run"
-        "--prompt" "$system_prompt"
-    )
-    
-    if [[ -n "$IGOR_SESSION_ID" ]]; then
-        opencode_args+=(
-            "--session" "$IGOR_SESSION_ID"
-            "--continue"
-        )
-    fi
-    
-    opencode_args+=("$user_prompt")
-    
-    local temp_output=$(mktemp)
-    trap "rm -f $temp_output" EXIT
-    
-    echo "▶ Working on: $user_prompt"
-    echo ""
-    
-    opencode "${opencode_args[@]}" 2>&1 | tee "$temp_output"
-    
-    local output_content=$(cat "$temp_output")
-    
-    if [[ -z "$IGOR_SESSION_ID" ]]; then
-        local extracted_session=$(extract_session_id_from_output "$output_content")
-        if [[ -n "$extracted_session" ]]; then
-            save_session_id "$project_root" "$extracted_session"
-            export IGOR_SESSION_ID="$extracted_session"
-        fi
-    fi
-    
-    if is_memory_enabled; then
-        extract_learnings "$output_content" "$project_name"
-    fi
+    case "$1" in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --version|-v)
+            show_version
+            exit 0
+            ;;
+        --diagnose)
+            shift
+            diagnose_mode "${1:-health}" "${2:-}"
+            exit 0
+            ;;
+        --dry-run)
+            shift
+            echo "⚠️  DRY RUN MODE - Changes will not be executed"
+            echo ""
+            run_agent "$@"
+            exit 0
+            ;;
+        --memory)
+            shift
+            if [[ "${1:-}" == "edit" ]]; then
+                mkdir -p "${IGOR_HOME}/memory/system"
+                ${EDITOR:-nano} "${IGOR_HOME}/memory/system/knowledge.md"
+            else
+                echo "=== System Knowledge Base ==="
+                get_system_knowledge 2>/dev/null || echo "(empty)"
+            fi
+            exit 0
+            ;;
+        --clear-history)
+            rm -f "${IGOR_HOME}/memory/issues/fixed.log"
+            echo "Issue history cleared"
+            exit 0
+            ;;
+        *)
+            run_agent "$@"
+            exit 0
+            ;;
+    esac
 }
 
 main "$@"

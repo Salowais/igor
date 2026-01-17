@@ -1,178 +1,176 @@
-# Igor Quick Start
+# Igor Quick Start - Autonomous System Agent v1.0
+
+Igor is like having a senior sysadmin in your terminal. Tell it what's wrong, and it diagnoses and fixes it.
 
 ## Install
 
 ```bash
-# Option 1: Curl (easiest)
 curl -fsSL https://raw.githubusercontent.com/yourusername/igor/main/install.sh | bash
-
-# Option 2: Git
-git clone https://github.com/yourusername/igor.git
-cd igor
-./install.sh
-
-# Then reload shell
-source ~/.bashrc  # or source ~/.zshrc
+source ~/.bashrc
 ```
 
-## Your First Command
+## Quick Examples
 
-Go to any project and run:
+### Fix a Service That Won't Start
 
 ```bash
-$ cd ~/my-project
-$ igor what does this codebase do
-```
+$ igor my nginx won't start
 
 Igor will:
-1. Detect your project
-2. Load project context (from memory if exists)
-3. Send your question to OpenCode
-4. Stream the response back
-5. Auto-save learnings for next time
-
-## Session Continuity in Action
-
-```bash
-$ igor add email validation to the login form
-# Igor completes the task, saves session ID
-
-$ igor now add password strength indicator
-# Igor continues the same session - remembers what you did!
-
-$ cd ~/other-project
-$ igor explain the database schema
-# New project = new session automatically
-
-$ cd ~/my-project
-$ igor what did we last do here
-# Back to original project, continues from where you left off
+1. Check if nginx is installed
+2. Check service status
+3. Read error logs
+4. Identify the problem (config error, port in use, etc)
+5. Fix it
+6. Verify it's running
 ```
 
-## Memory in Action
+### Fix Permission Issues
 
 ```bash
-# See what Igor learned about this project
-$ igor --memory
+$ igor fix my .ssh permissions
 
-# See global preferences
-$ igor --memory global
-
-# Edit memory directly
-$ igor --memory edit
-
-# Clean up old entries
-$ igor --memory compact
+Igor will:
+1. Check .ssh directory and key files
+2. Fix permissions to standard values (700 for dir, 600 for keys)
+3. Verify SSH works
 ```
 
-## Important Behaviors
+### Check System Health
 
-### Asks for Confirmation Before:
-- Writing/editing files
-- Deleting files
-- Git operations (commit, push, etc.)
-- Running shell commands that modify state
-- Batch operations (5+ files)
-
-### Proceeds Without Asking:
-- Reading files
-- Searching code
-- Listing contents
-- Exploratory operations
-
-### Force Fresh Session:
 ```bash
-$ igor --new explain this codebase from scratch
+$ igor diagnose health
+# Shows disk, memory, CPU, services, errors
+
+$ igor diagnose docker
+# Checks Docker service, containers, images, issues
+
+$ igor diagnose network
+# Checks network connectivity, DNS, interfaces
 ```
 
-## Config
+### Understand Problems
 
-Edit `~/.igor/config.yaml` to:
-- Change default model
-- Enable/disable confirmations
-- Adjust session timeout
-- Control memory behavior
+```bash
+$ igor why is docker service failing
+# Igor analyzes logs and explains the root cause
 
-Default config works great - only customize if needed.
+$ igor my system is slow
+# Igor profiles and shows resource issues
+
+$ igor what services are failing
+# Shows all non-running services and why
+```
+
+## Interaction Style
+
+Igor:
+- **Thinks out loud** - explains its reasoning
+- **Asks before destructive ops** - deletes, config changes
+- **Auto-fixes safe operations** - restarts services, fixes permissions
+- **Learns over time** - remembers issues it's solved
+
+## Commands
+
+```bash
+igor <natural language>         Main agent - diagnose and fix
+
+# Diagnostics only (no fixes)
+igor --diagnose health          System health
+igor --diagnose services        Service status
+igor --diagnose docker          Docker issues
+igor --diagnose disk            Disk usage
+igor --diagnose network         Network status
+igor --diagnose logs            System logs
+
+# Memory
+igor --memory                   View learned knowledge
+igor --memory edit              Edit knowledge manually
+igor --clear-history            Clear fixed issues log
+
+# Help
+igor --help                     Show help
+igor --version                  Show version
+```
 
 ## Common Patterns
 
-**Iterative Development:**
+**Debug a failing service:**
 ```bash
-$ igor create a user authentication module
-$ igor add unit tests for auth
-$ igor fix the failing test about password hashing
+$ igor my postgres won't connect
+$ igor are the logs showing any hints
+$ igor how do I restart the postgres service
 ```
 
-**Exploration:**
+**System audit:**
 ```bash
-$ igor --new show me the API endpoints
-$ igor what do the auth endpoints do
-$ igor which endpoints need rate limiting
+$ igor audit my system for issues
+$ igor what should I fix first
+$ igor --diagnose services
 ```
 
-**Refactoring:**
+**Learn what Igor knows:**
 ```bash
-$ igor --new refactor this module to TypeScript
-$ igor add the missing type annotations
-$ igor run tests and fix any failures
+$ igor --memory
 ```
 
-**Learning:**
+**Run diagnostics only:**
 ```bash
-$ igor explain the data model
-$ igor what are the key design patterns used here
-$ igor how does the caching system work
+$ igor --diagnose health      (don't fix, just show problems)
 ```
+
+## What Gets Auto-Fixed
+
+Igor doesn't ask before:
+- Restarting failed services
+- Fixing obvious permission issues (chmod 600 ~/.ssh/id_rsa)
+- Updating package lists
+- Viewing logs and diagnostics
+- Enabling important services
+
+Igor ALWAYS asks before:
+- Deleting files
+- Modifying critical configs (/etc/*, /root)
+- Installing/removing packages
+- Anything potentially destructive
+
+## Tips
+
+1. **Be specific** - "my docker service crashed" better than "things broken"
+2. **Use diagnostics** - `igor --diagnose health` shows what's wrong
+3. **Igor remembers** - Past issues and fixes are remembered
+4. **Check logs** - `igor --diagnose logs` for recent errors
+5. **Small asks** - "restart nginx" better than "fix everything"
 
 ## Troubleshooting
 
-**Command not found**
+**Igor not found:**
 ```bash
-# Reload your shell
 source ~/.bashrc
-
-# Or check PATH
-echo $PATH | grep .igor
 ```
 
-**Want a fresh start**
+**Permission denied:**
 ```bash
-# Clear current session
-$ igor --clear
-
-# Or start completely fresh
-$ igor --new <task>
-
-# Or see what's stored
-$ ls ~/.igor/
+sudo igor fix my service
+# Some system operations need sudo
 ```
 
-**Memory acting weird**
+**Want to see what Igor would do:**
 ```bash
-# Check what's stored
-$ igor --memory
+igor --diagnose health   # Just show, don't fix
+```
 
-# Clear old entries
-$ igor --memory compact
-
-# Edit directly
-$ igor --memory edit
+**Understand a service:**
+```bash
+igor tell me about postgres
+igor what config does nginx use
 ```
 
 ## Next Steps
 
-1. **Read the README** - Full feature documentation
-2. **Check ARCHITECTURE.md** - How Igor works internally
-3. **Customize config** - Add default model, adjust confirmations
-4. **Try with your projects** - Experience session continuity
-
-## Tips
-
-- Igor works best with projects using git
-- Memory grows over time - use `--memory compact` monthly
-- Sessions timeout after 24 hours (configurable)
-- Share memory across team by checking in `~/.igor/memory/` to git
-- Use `--new` when starting big refactors
+1. Try a simple diagnostic: `igor --diagnose health`
+2. Describe a real problem: `igor my service won't start`
+3. Check what Igor learned: `igor --memory`
+4. Read full README for details: `cat README.md`
 
 Enjoy! 🚀
