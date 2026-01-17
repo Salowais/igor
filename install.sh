@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
+if [[ ! -d "$REPO_DIR/lib" ]]; then
+    REPO_DIR="$(mktemp -d)"
+    curl -fsSL https://api.github.com/repos/Salowais/igor/tarball/master | tar xz -C "$REPO_DIR" --strip-components=1
+fi
 IGOR_HOME="${IGOR_HOME:-${HOME}/.igor}"
 IGOR_BIN_DIR="${IGOR_HOME}/bin"
 
