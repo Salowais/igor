@@ -147,7 +147,8 @@ USER REQUEST: $user_task"
 
     local model="${IGOR_MODEL:-opencode/big-pickle}"
     
-    opencode run --model "$model" "$full_message"
+    # Use printf to avoid bash quote/apostrophe issues
+    printf '%s' "$full_message" | opencode run --model "$model"
 }
 
 main() {
