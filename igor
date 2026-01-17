@@ -18,6 +18,7 @@ show_help() {
 Igor v1.0 - Autonomous System Agent
 
 Usage: igor [FLAGS] <task or question>
+   or: echo "your question" | igor
 
 Igor understands natural language requests and autonomously diagnoses and fixes system issues.
 
@@ -33,11 +34,11 @@ FLAGS:
 EXAMPLES:
   igor fix my permissions issues with .ssh
   igor why is my docker service crashing
-  igor diagnose my disk space problems
-  igor my nginx server won't start
-  igor what services are failing
-  igor show me performance issues
-  igor audit my system
+  igor "check today's weather in sharjah"
+  echo "i can't reach my server" | igor
+
+TIP: Use quotes if your question has apostrophes or special chars:
+  igor "i can't reach my server what's wrong"
 
 EOF
 }
@@ -150,12 +151,27 @@ USER REQUEST: $user_task"
 }
 
 main() {
+    local user_input=""
+    
     if [[ $# -eq 0 ]]; then
+        if [[ ! -t 0 ]]; then
+            user_input=$(cat)
+        else
+            show_help
+            exit 0
+        fi
+    else
+        user_input="$*"
+    fi
+    
+    if [[ -z "$user_input" ]]; then
         show_help
         exit 0
     fi
     
-    case "$1" in
+    local first_arg="${1:-}"
+    
+    case "$first_arg" in
         --help|-h)
             show_help
             exit 0
@@ -193,7 +209,7 @@ main() {
             exit 0
             ;;
         *)
-            run_agent "$@"
+            run_agent "$user_input"
             exit 0
             ;;
     esac
