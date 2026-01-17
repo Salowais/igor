@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IGOR_HOME="${IGOR_HOME:-${HOME}/.igor}"
+IGOR_VERSION="0.1.0"
+
+export IGOR_HOME IGOR_VERSION
+
+source "${IGOR_HOME}/lib/config.sh" 2>/dev/null || true
+source "${IGOR_HOME}/lib/session.sh" 2>/dev/null || true
+source "${IGOR_HOME}/lib/memory.sh" 2>/dev/null || true
+source "${IGOR_HOME}/lib/prompt.sh" 2>/dev/null || true
+
+show_help() {
+    cat << EOF
+Igor - Natural Language CLI for OpenCode
+
+Usage: igor [FLAGS] <command...>
+
+FLAGS:
+  --new               Force new session (don't continue previous)
+  --memory            Show project memory
+  --memory global     Show global memory
+  --memory edit       Edit project memory
+  --memory compact    Compact memory (remove duplicates)
+  --clear             Clear current session
+  --config            Show config file location
+  --help              Show this help
+  --version           Show version
+
+EXAMPLES:
+  igor find all TODO comments in this project
+  igor refactor the auth module to use async/await
+  igor --new explain this codebase to me
+  igor --memory
+  igor --clear
+
+EOF
+}
+
+show_version() {
+    echo "Igor v${IGOR_VERSION}"
+}
+
+main() {
+    local force_new=false
+    local command=""
+    
+    if [[ $# -eq 0 ]]; then
+        show_help
+        exit 0
+    fi
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+            --version|-v)
+                show_version
+                exit 0
+                ;;
+            --new)
+                force_new=true
+                shift
+                ;;
+            --clear)
+                local project_root=$(get_project_root)
+                clear_session "$project_root"
+                echo "Session cleared for $(basename "$project_root")"
+                exit 0
+                ;;
+            --memory)
+                shift
+                local scope="${1:-project}"
+                if [[ "$scope" == "edit" ]]; then
+                    local project_root=$(get_project_root)
+                    local project_name=$(basename "$project_root")
+                    edit_memory "project" "$project_name"
+                elif [[ "$scope" == "compact" ]]; then
+                    local project_root=$(get_project_root)
+                    local project_name=$(basename "$project_root")
+                    echo "Compacting memory..."
+                    compact_memory "$project_name"
+                else
+                    show_memory "$scope"
+                fi
+                exit 0
+                ;;
+            --config)
+                echo "Config: ${IGOR_HOME}/config.yaml"
+                if [[ -f "${IGOR_HOME}/config.yaml" ]]; then
+                    cat "${IGOR_HOME}/config.yaml"
+                else
+                    echo "Config file not found. Run 'igor --init' to create default config."
+                fi
+                exit 0
+                ;;
+            --init)
+                init_default_config
+                echo "Config initialized at ${IGOR_HOME}/config.yaml"
+                exit 0
+                ;;
+            *)
+                command="$*"
+                break
+                ;;
+        esac
+    done
+    
+    if [[ -z "$command" ]]; then
+        show_help
+        exit 0
+    fi
+    
+    run_command "$command" "$force_new"
+}
+
+run_command() {
+    local user_prompt="$1"
+    local force_new="$2"
+    
+    local project_root=$(get_project_root)
+    local project_name=$(basename "$project_root")
+    
+    init_memory
+    init_default_config
+    
+    get_or_create_session "$project_root" "$force_new"
+    
+    local system_prompt=$(build_system_prompt "$project_root")
+    
+    local opencode_args=(
+        "run"
+        "--prompt" "$system_prompt"
+    )
+    
+    if [[ -n "$IGOR_SESSION_ID" ]]; then
+        opencode_args+=(
+            "--session" "$IGOR_SESSION_ID"
+            "--continue"
+        )
+    fi
+    
+    opencode_args+=("$user_prompt")
+    
+    local temp_output=$(mktemp)
+    trap "rm -f $temp_output" EXIT
+    
+    echo "▶ Working on: $user_prompt"
+    echo ""
+    
+    opencode "${opencode_args[@]}" 2>&1 | tee "$temp_output"
+    
+    local output_content=$(cat "$temp_output")
+    
+    if [[ -z "$IGOR_SESSION_ID" ]]; then
+        local extracted_session=$(extract_session_id_from_output "$output_content")
+        if [[ -n "$extracted_session" ]]; then
+            save_session_id "$project_root" "$extracted_session"
+            export IGOR_SESSION_ID="$extracted_session"
+        fi
+    fi
+    
+    if is_memory_enabled; then
+        extract_learnings "$output_content" "$project_name"
+    fi
+}
+
+main "$@"

@@ -1,0 +1,26 @@
+# Igor Configuration
+
+# Default model (optional, uses OpenCode default if not set)
+# model: anthropic/claude-sonnet-4
+
+# Agent to use
+agent: build
+
+# What requires confirmation (all true by default)
+# These protect against accidental destructive operations
+confirm:
+  file_write: true
+  file_delete: true
+  git_operations: true
+  shell_commands: true
+  batch_operations: true
+
+# Memory settings
+memory:
+  enabled: true
+  auto_update: true
+  max_entries: 50
+
+# Session settings
+session:
+  timeout_hours: 24
