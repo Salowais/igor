@@ -89,7 +89,7 @@ diagnose_mode() {
 }
 
 run_agent() {
-    local user_task="$1"
+    local user_task="$*"
     
     init_memory
     init_default_config
