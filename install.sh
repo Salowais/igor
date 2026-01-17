@@ -1,36 +1,40 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)}"
-if [[ ! -d "$REPO_DIR/lib" ]]; then
-    REPO_DIR="$(mktemp -d)"
-    curl -fsSL https://api.github.com/repos/Salowais/igor/tarball/master | tar xz -C "$REPO_DIR" --strip-components=1
-fi
 IGOR_HOME="${IGOR_HOME:-${HOME}/.igor}"
 IGOR_BIN_DIR="${IGOR_HOME}/bin"
+IGOR_LIB_DIR="${IGOR_HOME}/lib"
+REPO_URL="https://github.com/Salowais/igor"
+BRANCH="master"
 
-echo "Installing Igor..."
+echo "Installing Igor from $REPO_URL..."
 echo "  Home: $IGOR_HOME"
 echo "  Bin: $IGOR_BIN_DIR"
 echo ""
 
 mkdir -p "$IGOR_BIN_DIR"
-mkdir -p "${IGOR_HOME}/lib"
+mkdir -p "$IGOR_LIB_DIR"
 mkdir -p "${IGOR_HOME}/memory/system"
 mkdir -p "${IGOR_HOME}/memory/issues"
 mkdir -p "${IGOR_HOME}/sessions"
 mkdir -p "${IGOR_HOME}/cache"
 
-cp "$REPO_DIR/igor" "$IGOR_BIN_DIR/igor"
-cp "$REPO_DIR/lib"/*.sh "$IGOR_HOME/lib/" 2>/dev/null || true
-chmod +x "$IGOR_BIN_DIR/igor"
+echo "Downloading Igor files..."
+
+for file in igor; do
+    curl -fsSL "https://raw.githubusercontent.com/Salowais/igor/${BRANCH}/${file}" -o "$IGOR_BIN_DIR/${file}"
+    chmod +x "$IGOR_BIN_DIR/${file}"
+done
+
+for file in config.sh session.sh memory.sh prompt.sh diagnostics.sh fixer.sh; do
+    curl -fsSL "https://raw.githubusercontent.com/Salowais/igor/${BRANCH}/lib/${file}" -o "$IGOR_LIB_DIR/${file}"
+    chmod +x "$IGOR_LIB_DIR/${file}"
+done
 
 if [[ ! -f "${IGOR_HOME}/config.yaml" ]]; then
-    cp "$REPO_DIR/examples/config.yaml" "${IGOR_HOME}/config.yaml" 2>/dev/null || \
-        "$IGOR_BIN_DIR/igor" --init
+    curl -fsSL "https://raw.githubusercontent.com/Salowais/igor/${BRANCH}/examples/config.yaml" -o "${IGOR_HOME}/config.yaml"
 fi
-
-export IGOR_HOME
 
 add_to_path() {
     local shell_rc="$1"
@@ -44,12 +48,13 @@ add_to_path() {
         echo "# Igor CLI" >> "$shell_rc"
         echo "export IGOR_HOME=\"${IGOR_HOME}\"" >> "$shell_rc"
         echo "export PATH=\"\${IGOR_HOME}/bin:\$PATH\"" >> "$shell_rc"
-        echo "Added Igor to $shell_rc"
     fi
 }
 
 add_to_path "${HOME}/.bashrc"
 add_to_path "${HOME}/.zshrc"
+add_to_path "${HOME}/.kshrc"
+add_to_path "${HOME}/.profile"
 
 echo ""
 echo "✓ Igor installed successfully!"
