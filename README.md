@@ -72,14 +72,14 @@ $ igor ssh isn't working
 ### Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/igor/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/salowais/igor/master/install.sh | bash
 source ~/.bashrc
 ```
 
 ### Manual Install
 
 ```bash
-git clone https://github.com/yourusername/igor.git
+git clone https://github.com/salowais/igor.git
 cd igor
 ./install.sh
 source ~/.bashrc
