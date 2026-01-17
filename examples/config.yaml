@@ -1,6 +1,8 @@
 # Igor Configuration
 
-# Default model (optional, uses OpenCode default if not set)
+# Default model (uses free opencode/big-pickle by default)
+# Override with: export IGOR_MODEL=yourmodel/name
+# Or uncomment below:
 # model: anthropic/claude-sonnet-4
 
 # Agent to use

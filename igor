@@ -144,7 +144,9 @@ $knowledge"
 
 USER REQUEST: $user_task"
 
-    opencode run "$full_message"
+    local model="${IGOR_MODEL:-opencode/big-pickle}"
+    
+    opencode run --model "$model" "$full_message"
 }
 
 main() {
